@@ -13,59 +13,54 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([
-         render/2,
-         render/3,
-         parse_binary/1,
-         parse_binary/2,
-         parse_file/1,
-         parse_file/2,
-         compile/2,
-         compile/3,
-         default_value_serializer/1,
-         default_partial_file_reader/2
-        ]).
+    render/2, render/3,
+    parse_binary/1, parse_binary/2,
+    parse_file/1, parse_file/2,
+    compile/2, compile/3,
+    default_value_serializer/1, default_partial_file_reader/2
+]).
 
 -ifdef(bbmustache_escriptize).
 -export([main/1]).
 -endif.
 
 -export_type([
-              key/0,
-              template/0,
-              data/0,
-              recursive_data/0,
-              option/0, % deprecated
-              compile_option/0,
-              parse_option/0,
-              render_option/0
-             ]).
+    key/0,
+    template/0,
+    data/0,
+    recursive_data/0,
+    option/0, % deprecated
+    compile_option/0,
+    parse_option/0,
+    render_option/0
+]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Defines & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
 
--define(PARSE_ERROR,                incorrect_format).
--define(FILE_ERROR,                 file_not_found).
+-define(PARSE_ERROR, incorrect_format).
+-define(FILE_ERROR, file_not_found).
 -define(CONTEXT_MISSING_ERROR(Msg), {context_missing, Msg}).
 
 -define(IIF(Cond, TValue, FValue),
-        case Cond of true -> TValue; false -> FValue end).
+    case Cond of true -> TValue; false -> FValue end).
 
 -define(ADD(X, Y), ?IIF(X =:= <<>>, Y, [X | Y])).
 -define(START_TAG, <<"{{">>).
--define(STOP_TAG,  <<"}}">>).
+-define(STOP_TAG, <<"}}">>).
 
 -define(RAISE_ON_CONTEXT_MISS_ENABLED(Options),
-        proplists:get_bool(raise_on_context_miss, Options)).
+    proplists:get_bool(raise_on_context_miss, Options)).
 -define(RAISE_ON_PARTIAL_MISS_ENABLED(Options),
-        proplists:get_bool(raise_on_partial_miss, Options)).
+    proplists:get_bool(raise_on_partial_miss, Options)).
 
 -define(PARSE_OPTIONS, [
-                        partial_file_reader,
-                        raise_on_partial_miss
-                       ]).
+    partial_file_reader,
+    raise_on_partial_miss
+]).
 
--type key()    :: binary().
+-type key() :: binary().
 %% Key MUST be a non-whitespace character sequence NOT containing the current closing delimiter. <br />
 %%
 %% In addition, `.' have a special meaning. <br />
@@ -76,12 +71,12 @@
 -type source() :: binary().
 %% If you use lamda expressions, the original text is necessary.
 
--type tag()    :: {n,   [key()]}
-                | {'&', [key()]}
-                | {'#', [key()], [tag()], source()}
-                | {'^', [key()], [tag()]}
-                | {'>', key(), Indent :: source()}
-                | binary(). % plain text
+-type tag() :: {n, [key()]}
+| {'&', [key()]}
+| {'#', [key()], [tag()], source()}
+| {'^', [key()], [tag()]}
+| {'>', key(), Indent :: source()}
+| binary(). % plain text
 %% Tag is the internal data structure of the result of parsing the mustache template.
 %%
 %% ```
@@ -97,43 +92,43 @@
 %%   However, the greater the number of tags used, it uses the wasted memory.
 
 -record(?MODULE,
-        {
-          data               :: [tag()],
+{
+    data :: [tag()],
 
-          partials      = [] :: [{key(), [tag()]} | key()],
-          %% The `{key(), [tag()]}` indicates that `key()` already parsed and `[tag()]` is the result of parsing.
-          %% The `key()` indicates that the file did not exist.
+    partials = [] :: [{key(), [tag()]} | key()],
+    %% The `{key(), [tag()]}` indicates that `key()` already parsed and `[tag()]` is the result of parsing.
+    %% The `key()` indicates that the file did not exist.
 
-          options       = [] :: [compile_option()],
-          indents       = [] :: [binary()],
-          context_stack = [] :: [data()]
-        }).
+    options = [] :: [compile_option()],
+    indents = [] :: [binary()],
+    context_stack = [] :: [data()]
+}).
 
 -opaque template() :: #?MODULE{}.
 %% @see parse_binary/1
 %% @see parse_file/1
 
 -record(state,
-        {
-          dirname  = <<>>       :: file:filename_all(),
-          start    = ?START_TAG :: binary(),
-          stop     = ?STOP_TAG  :: binary(),
-          partials = []         :: [key()],
-          standalone = true     :: boolean()
-        }).
+{
+    dirname = <<>> :: file:filename_all(),
+    start = ?START_TAG :: binary(),
+    stop = ?STOP_TAG :: binary(),
+    partials = [] :: [key()],
+    standalone = true :: boolean()
+}).
 -type state() :: #state{}.
 
 -type parse_option() :: {partial_file_reader, fun((Dirname :: binary(), key()) -> Data :: binary())}
-                     | raise_on_partial_miss.
+| raise_on_partial_miss.
 %% |key                  |description                                                                           |
 %% |:--                  |:----------                                                                           |
 %% |partial_file_reader  | When you specify this, it delegate reading of file to the function by `partial'.<br/> This can be used when you want to read from files other than local files.|
 %% |raise_on_partial_miss| If the template used in partials does not found, it will throw an exception (error). |
 
 -type compile_option() :: {key_type, atom | binary | string}
-                       | raise_on_context_miss
-                       | {escape_fun, fun((binary()) -> binary())}
-                       | {value_serializer, fun((any()) -> iodata())}.
+| raise_on_context_miss
+| {escape_fun, fun((binary()) -> binary())}
+| {value_serializer, fun((any()) -> iodata())}.
 %% |key                  |description                                                                           |
 %% |:--                  |:----------                                                                           |
 %% |key_type             | Specify the type of the key in {@link data/0}. Default value is `string'.            |
@@ -168,7 +163,7 @@
 -endif.
 %% It is a part of {@link data/0} that can have child elements.
 
--type endtag()    :: {endtag, {state(), [key()], LastTagSize :: non_neg_integer(), Rest :: binary(), Result :: [tag()]}}.
+-type endtag() :: {endtag, {state(), [key()], LastTagSize :: non_neg_integer(), Rest :: binary(), Result :: [tag()]}}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -184,7 +179,7 @@ render(Bin, Data) ->
 render(Bin, Data, Options) ->
     {ParseOptions, CompileOptions}
         = lists:partition(fun(X) ->
-                              lists:member(?IIF(is_tuple(X), element(1, X), X), ?PARSE_OPTIONS)
+        lists:member(?IIF(is_tuple(X), element(1, X), X), ?PARSE_OPTIONS)
                           end, Options),
     compile(parse_binary(Bin, ParseOptions), Data, CompileOptions).
 
@@ -212,8 +207,9 @@ parse_file(Filename, Options) ->
         {ok, Bin} ->
             {State1, Data} = parse(State, Bin),
             Template = case to_binary(filename:extension(Filename)) of
-                           <<".mustache">> = Ext -> #?MODULE{partials = [{filename:basename(Filename, Ext), Data}], data = Data};
-                           _                     -> #?MODULE{data = Data}
+                           <<".mustache">> = Ext ->
+                               #?MODULE{partials = [{filename:basename(Filename, Ext), Data}], data = Data};
+                           _ -> #?MODULE{data = Data}
                        end,
             parse_remaining_partials(State1, Template, Options);
         _ ->
@@ -260,7 +256,7 @@ default_value_serializer(X) ->
 -spec default_partial_file_reader(binary(), binary()) -> {ok, binary()} | {error, Reason :: term()}.
 default_partial_file_reader(Dirname, Key) ->
     Filename0 = <<Key/binary, ".mustache">>,
-    Filename  = ?IIF(Dirname =:= <<>>, Filename0, filename:join([Dirname, Filename0])),
+    Filename = ?IIF(Dirname =:= <<>>, Filename0, filename:join([Dirname, Filename0])),
     file:read_file(Filename).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -293,7 +289,7 @@ compile_impl([{'#', Keys, Tags, Source} | T], Data, Result, State) ->
                 %% It doesn't need to add Value to context_stack because List is not context.
                 LoopState = State#?MODULE{context_stack = [X | State#?MODULE.context_stack]},
                 compile_impl(Tags, X, Acc, LoopState)
-            end, Result, Value),
+                                     end, Result, Value),
             compile_impl(T, Data, NextResult, State);
         _ when is_function(Value, 2) ->
             Ret = Value(Source, fun(Text) -> render(Text, Data, State#?MODULE.options) end),
@@ -304,26 +300,26 @@ compile_impl([{'#', Keys, Tags, Source} | T], Data, Result, State) ->
 compile_impl([{'^', Keys, Tags} | T], Data, Result, State) ->
     Value = get_data_recursive(Keys, Data, false, State),
     case is_falsy(Value) of
-        true  -> compile_impl(T, Data, compile_impl(Tags, Data, Result, State), State);
+        true -> compile_impl(T, Data, compile_impl(Tags, Data, Result, State), State);
         false -> compile_impl(T, Data, Result, State)
     end;
 compile_impl([{'>', Key, Indent} | T], Data, Result0, #?MODULE{partials = Partials} = State) ->
     case proplists:get_value(Key, Partials) of
         undefined ->
             case ?RAISE_ON_CONTEXT_MISS_ENABLED(State#?MODULE.options) of
-                true  -> error(?CONTEXT_MISSING_ERROR({?FILE_ERROR, Key}));
+                true -> error(?CONTEXT_MISSING_ERROR({?FILE_ERROR, Key}));
                 false -> compile_impl(T, Data, Result0, State)
             end;
-        PartialT  ->
+        PartialT ->
             Indents = State#?MODULE.indents ++ [Indent],
             Result1 = compile_impl(PartialT, Data, [Indent | Result0], State#?MODULE{indents = Indents}),
             compile_impl(T, Data, Result1, State)
     end;
-compile_impl([B1 | [_|_] = T], Data, Result, #?MODULE{indents = Indents} = State) when Indents =/= [] ->
+compile_impl([B1 | [_ | _] = T], Data, Result, #?MODULE{indents = Indents} = State) when Indents =/= [] ->
     %% NOTE: indent of partials
     case byte_size(B1) > 0 andalso binary:last(B1) of
         $\n -> compile_impl(T, Data, [Indents, B1 | Result], State);
-        _   -> compile_impl(T, Data, [B1 | Result], State)
+        _ -> compile_impl(T, Data, [B1 | Result], State)
     end;
 compile_impl([Bin | T], Data, Result, State) ->
     compile_impl(T, Data, [Bin | Result], State).
@@ -334,19 +330,19 @@ parse_remaining_partials(#state{partials = []}, Template = #?MODULE{}, _Options)
     Template;
 parse_remaining_partials(State = #state{partials = [P | PartialKeys]}, Template = #?MODULE{partials = Partials}, Options) ->
     case proplists:is_defined(P, Partials) of
-        true  -> parse_remaining_partials(State#state{partials = PartialKeys}, Template, Options);
+        true -> parse_remaining_partials(State#state{partials = PartialKeys}, Template, Options);
         false ->
             FileReader = proplists:get_value(partial_file_reader, Options, fun default_partial_file_reader/2),
-            Dirname    = State#state.dirname,
+            Dirname = State#state.dirname,
             case FileReader(Dirname, P) of
                 {ok, Input} ->
                     {State1, Data} = parse(State, Input),
                     parse_remaining_partials(State1, Template#?MODULE{partials = [{P, Data} | Partials]}, Options);
                 {error, Reason} ->
                     case ?RAISE_ON_PARTIAL_MISS_ENABLED(Options) of
-                        true  -> error({?FILE_ERROR, P, Reason});
+                        true -> error({?FILE_ERROR, P, Reason});
                         false -> parse_remaining_partials(State#state{partials = PartialKeys},
-                                                          Template#?MODULE{partials = [P | Partials]}, Options)
+                            Template#?MODULE{partials = [P | Partials]}, Options)
                     end
             end
     end.
@@ -359,7 +355,7 @@ parse(State0, Bin) ->
             error({?PARSE_ERROR, {section_is_incorrect, binary_join(Keys, <<".">>)}});
         {#state{partials = Partials} = State, Tags} ->
             {State#state{partials = lists:usort(Partials), start = ?START_TAG, stop = ?STOP_TAG},
-             lists:reverse(Tags)}
+                lists:reverse(Tags)}
     end.
 
 %% @doc Part of the `parse/1'
@@ -369,12 +365,12 @@ parse(State0, Bin) ->
 parse1(#state{start = Start} = State, Bin, Result) ->
     case binary:match(Bin, [Start, <<"\n">>]) of
         nomatch -> {State, ?ADD(Bin, Result)};
-        {S, L}  ->
+        {S, L} ->
             Pos = S + L,
-            B2  = binary:part(Bin, Pos, byte_size(Bin) - Pos),
+            B2 = binary:part(Bin, Pos, byte_size(Bin) - Pos),
             case binary:at(Bin, S) of
                 $\n -> parse1(State#state{standalone = true}, B2, ?ADD(binary:part(Bin, 0, Pos), Result)); % \n
-                _   -> parse2(State, split_tag(State, Bin), Result)
+                _ -> parse2(State, split_tag(State, Bin), Result)
             end
     end.
 
@@ -393,7 +389,7 @@ parse2(State, [B1, B2, B3], Result) ->
             Size = byte_size(Tag1) - 1,
             case Size >= 0 andalso Tag1 of
                 <<Tag2:Size/binary, "=">> -> parse_delimiter(State, Tag2, B3, [B1 | Result]);
-                _                         -> error({?PARSE_ERROR, {unsupported_tag, <<"=", Tag0/binary>>}})
+                _ -> error({?PARSE_ERROR, {unsupported_tag, <<"=", Tag0/binary>>}})
             end;
         <<"!", _/binary>> ->
             parse3(State, B3, [B1 | Result]);
@@ -430,7 +426,7 @@ parse_loop(State0, Mark, Keys, Input0, Result0) ->
             {State3, _, Rest1, LoopResult1} = standalone(State2, Rest0, LoopResult0),
             case Mark of
                 '#' -> Source = binary:part(Input1, 0, byte_size(Input1) - byte_size(Rest0) - LastTagSize),
-                       parse1(State3, Rest1, [{'#', Keys, lists:reverse(LoopResult1), Source} | Result1]);
+                    parse1(State3, Rest1, [{'#', Keys, lists:reverse(LoopResult1), Source} | Result1]);
                 '^' -> parse1(State3, Rest1, [{'^', Keys, lists:reverse(LoopResult1)} | Result1])
             end;
         {endtag, {_, OtherKeys, _, _, _}} ->
@@ -455,7 +451,7 @@ parse_delimiter(State0, ParseDelimiterBin, NextBin, Result) ->
         nomatch ->
             case [X || X <- binary:split(ParseDelimiterBin, <<" ">>, [global]), X =/= <<>>] of
                 [Start, Stop] -> parse3(State0#state{start = Start, stop = Stop}, NextBin, Result);
-                _             -> error({?PARSE_ERROR, delimiters_may_not_contain_whitespaces})
+                _ -> error({?PARSE_ERROR, delimiters_may_not_contain_whitespaces})
             end;
         _ ->
             error({?PARSE_ERROR, delimiters_may_not_contain_equals})
@@ -482,30 +478,30 @@ split_tag(#state{start = StartDelimiter, stop = StopDelimiter}, Bin) ->
         {StartPos, StartDelimiterLen} ->
             PosLimit = byte_size(Bin) - StartDelimiterLen,
             ShiftNum = while({true, StartPos + 1},
-                             fun(Pos) ->
-                                     ?IIF(Pos =< PosLimit
-                                          andalso binary:part(Bin, Pos, StartDelimiterLen) =:= StartDelimiter,
-                                          {true, Pos + 1}, {false, Pos})
-                             end) - StartPos - 1,
+                fun(Pos) ->
+                    ?IIF(Pos =< PosLimit
+                        andalso binary:part(Bin, Pos, StartDelimiterLen) =:= StartDelimiter,
+                        {true, Pos + 1}, {false, Pos})
+                end) - StartPos - 1,
             {PreTag, X} = split_binary(Bin, StartPos + ShiftNum),
-            Tag0        = part(X, StartDelimiterLen, 0),
+            Tag0 = part(X, StartDelimiterLen, 0),
             case binary:split(Tag0, StopDelimiter) of
-                [_]          -> [PreTag, Tag0]; % not found.
-                [Tag, Rest]  ->
+                [_] -> [PreTag, Tag0]; % not found.
+                [Tag, Rest] ->
                     IncludeStartDelimiterTag = binary:part(X, 0, byte_size(Tag) + StartDelimiterLen),
                     E = ?IIF(repeatedly_binary(StopDelimiter, $}),
-                             ?IIF(byte_size(Rest) > 0 andalso binary:first(Rest) =:= $}, 1, 0),
-                             ?IIF(byte_size(Tag) > 0 andalso binary:last(Tag) =:= $}, -1, 0)),
+                        ?IIF(byte_size(Rest) > 0 andalso binary:first(Rest) =:= $}, 1, 0),
+                        ?IIF(byte_size(Tag) > 0 andalso binary:last(Tag) =:= $}, -1, 0)),
                     S = ?IIF(repeatedly_binary(StartDelimiter, ${),
-                             ?IIF(ShiftNum > 0, -1, 0),
-                             ?IIF(byte_size(Tag) > 0 andalso binary:first(Tag) =:= ${, 1, 0)),
+                        ?IIF(ShiftNum > 0, -1, 0),
+                        ?IIF(byte_size(Tag) > 0 andalso binary:first(Tag) =:= ${, 1, 0)),
                     case E =:= 0 orelse S =:= 0 of
                         true ->  % {{ ... }}
                             [PreTag, Tag, Rest];
                         false -> % {{{ ... }}}
                             [part(PreTag, 0, min(0, S)),
-                             part(IncludeStartDelimiterTag, max(0, S) + StartDelimiterLen - 1, min(0, E)),
-                             part(Rest, max(0, E), 0)]
+                                part(IncludeStartDelimiterTag, max(0, S) + StartDelimiterLen - 1, min(0, E)),
+                                part(Rest, max(0, E), 0)]
                     end
             end
     end.
@@ -524,7 +520,7 @@ standalone(#state{standalone = false} = State, Post, Result) ->
 standalone(State, Post0, Result0) ->
     {Pre, Result1} = case Result0 =/= [] andalso hd(Result0) of
                          Pre0 when is_binary(Pre0) -> {Pre0, tl(Result0)};
-                         _                         -> {<<>>, Result0}
+                         _ -> {<<>>, Result0}
                      end,
     case remove_indent_from_head(Pre) =:= <<>> andalso remove_indent_from_head(Post0) of
         <<"\r\n", Post1/binary>> ->
@@ -561,9 +557,9 @@ part(X, Start, End) when End =< 0 ->
 %% @doc binary to keys
 -spec keys(binary()) -> [key()].
 keys(Bin0) ->
-    Bin1 = << <<X:8>> || <<X:8>> <= Bin0, X =/= $  >>,
+    Bin1 = <<<<X:8>> || <<X:8>> <= Bin0, X =/= $ >>,
     case Bin1 =:= <<>> orelse Bin1 =:= <<".">> of
-        true  -> [Bin1];
+        true -> [Bin1];
         false -> [X || X <- binary:split(Bin1, <<".">>, [global]), X =/= <<>>]
     end.
 
@@ -577,13 +573,13 @@ filename_key(Bin) ->
 binary_join([], _) ->
     <<>>;
 binary_join(Bins, Sep) ->
-    [Hd | Tl] = [ [Sep, B] || B <- Bins ],
+    [Hd | Tl] = [[Sep, B] || B <- Bins],
     iolist_to_binary([tl(Hd) | Tl]).
 
 %% @doc Remove the space from the head.
 -spec remove_space_from_head(binary()) -> binary().
 remove_space_from_head(<<" ", Rest/binary>>) -> remove_space_from_head(Rest);
-remove_space_from_head(Bin)                  -> Bin.
+remove_space_from_head(Bin) -> Bin.
 
 %% @doc Remove the indent from the head.
 -spec remove_indent_from_head(binary()) -> binary().
@@ -617,15 +613,15 @@ to_binary(Bytes) when is_list(Bytes) ->
 %% @doc HTML Escape
 -spec escape(binary()) -> binary().
 escape(Bin) ->
-    << <<(escape_char(X))/binary>> || <<X:8>> <= Bin >>.
+    <<<<(escape_char(X))/binary>> || <<X:8>> <= Bin>>.
 
 %% @doc escape a character if needed.
--spec escape_char(byte()) -> <<_:8, _:_*8>>.
+-spec escape_char(byte()) -> <<_:8, _:_ * 8>>.
 escape_char($<) -> <<"&lt;">>;
 escape_char($>) -> <<"&gt;">>;
 escape_char($&) -> <<"&amp;">>;
 escape_char($") -> <<"&quot;">>;
-escape_char(C)  -> <<C:8>>.
+escape_char(C) -> <<C:8>>.
 
 %% @doc convert to {@link data_key/0} from binary.
 -spec convert_keytype(key(), template()) -> data_key().
@@ -649,9 +645,9 @@ convert_keytype(KeyBin, #?MODULE{options = Options}) ->
 get_data_recursive(Keys, Data, Default, Template) ->
     case get_data_recursive_impl(Keys, Data, Template) of
         {ok, Term} -> Term;
-        error      ->
+        error ->
             case ?RAISE_ON_CONTEXT_MISS_ENABLED(Template#?MODULE.options) of
-                true  -> error(?CONTEXT_MISSING_ERROR({key, binary_join(Keys, <<".">>)}));
+                true -> error(?CONTEXT_MISSING_ERROR({key, binary_join(Keys, <<".">>)}));
                 false -> Default
             end
     end.
@@ -679,7 +675,7 @@ find_data(Key, Map) when is_map(Map) ->
     maps:find(Key, Map);
 find_data(Key, AssocList) when is_list(AssocList) ->
     case proplists:lookup(Key, AssocList) of
-        none   -> error;
+        none -> error;
         {_, V} -> {ok, V}
     end;
 find_data(_, _) ->
@@ -687,7 +683,7 @@ find_data(_, _) ->
 -else.
 find_data(Key, AssocList) ->
     case proplists:lookup(Key, AssocList) of
-        none   -> error;
+        none -> error;
         {_, V} -> {ok, V}
     end;
 find_data(_, _) ->
@@ -698,11 +694,11 @@ find_data(_, _) ->
 -spec is_recursive_data(recursive_data() | term()) -> boolean().
 -ifdef(namespaced_types).
 is_recursive_data([Tuple | _]) when is_tuple(Tuple) -> true;
-is_recursive_data(V) when is_map(V)                 -> true;
-is_recursive_data(_)                                -> false.
+is_recursive_data(V) when is_map(V) -> true;
+is_recursive_data(_) -> false.
 -else.
 is_recursive_data([Tuple | _]) when is_tuple(Tuple) -> true;
-is_recursive_data(_)                                -> false.
+is_recursive_data(_) -> false.
 -endif.
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -718,9 +714,9 @@ main(Args) ->
     %% (e.g. --version option)
     _ = application:load(bbmustache),
     try case getopt:parse(option_spec_list(), Args) of
-        {ok, {Options, Commands}} -> process_commands(Options, Commands);
-        {error, Reason}           -> throw(getopt:format_error(option_spec_list(), Reason))
-    end catch
+            {ok, {Options, Commands}} -> process_commands(Options, Commands);
+            {error, Reason} -> throw(getopt:format_error(option_spec_list(), Reason))
+        end catch
         throw:ThrowReason ->
             ok = io:format(standard_error, "ERROR: ~s~n", [ThrowReason]),
             halt(1)
@@ -732,22 +728,22 @@ process_commands(Opts, Cmds) ->
     HasHelp = proplists:is_defined(help, Opts),
     HasVersion = proplists:is_defined(version, Opts),
     if
-        HasHelp                     -> print_help(standard_io);
-        HasVersion                  -> print_version();
-        Opts =:= [], Cmds =:= []    -> print_help(standard_error);
-        true                        -> process_render(Opts, Cmds)
+        HasHelp -> print_help(standard_io);
+        HasVersion -> print_version();
+        Opts =:= [], Cmds =:= [] -> print_help(standard_error);
+        true -> process_render(Opts, Cmds)
     end.
 
 %% Returns command-line options.
 -spec option_spec_list() -> [getopt:option_spec()].
 option_spec_list() ->
-[
-    %% {Name,           ShortOpt,   LongOpt,        ArgSpec,        HelpMsg}
-    {help,              $h,         "help",         undefined,      "Show this help information."},
-    {version,           $v,         "version",      undefined,      "Output the current bbmustache version."},
-    {key_type,          $k,         "key-type",     atom,           "Key type (atom | binary | string)."},
-    {data_file,         $d,         "data-file",    string,         "Erlang terms file."}
-].
+    [
+        %% {Name,           ShortOpt,   LongOpt,        ArgSpec,        HelpMsg}
+        {help, $h, "help", undefined, "Show this help information."},
+        {version, $v, "version", undefined, "Output the current bbmustache version."},
+        {key_type, $k, "key-type", atom, "Key type (atom | binary | string)."},
+        {data_file, $d, "data-file", string, "Erlang terms file."}
+    ].
 
 %% Processes render
 -spec process_render([getopt:option()], [string()]) -> ok.
@@ -757,12 +753,12 @@ process_render(Opts, TemplateFileNames) ->
     KeyType = proplists:get_value(key_type, Opts, string),
     RenderOpts = [{key_type, KeyType}],
     lists:foreach(fun(TemplateFileName) ->
-                      try parse_file(TemplateFileName) of
-                          Template -> io:format(compile(Template, Data, RenderOpts))
-                      catch
-                          error:?FILE_ERROR ->
-                              throw(io_lib:format("~s is unable to read.", [TemplateFileName]))
-                      end
+        try parse_file(TemplateFileName) of
+            Template -> io:format(compile(Template, Data, RenderOpts))
+        catch
+            error:?FILE_ERROR ->
+                throw(io_lib:format("~s is unable to read.", [TemplateFileName]))
+        end
                   end, TemplateFileNames).
 
 %% Prints usage/help.
@@ -774,12 +770,12 @@ print_help(OutputStream) ->
 -spec print_version() -> ok.
 print_version() ->
     Vsn = case application:get_key(bbmustache, vsn) of
-        undefined  -> throw("vsn can not read from bbmustache.app");
-        {ok, Vsn0} -> Vsn0
-    end,
+              undefined -> throw("vsn can not read from bbmustache.app");
+              {ok, Vsn0} -> Vsn0
+          end,
     AdditionalVsn = case application:get_env(bbmustache, git_vsn) of
                         {ok, {_Tag, Count, [$g | GitHash]}} -> "+build." ++ Count ++ ".ref" ++ GitHash;
-                        _                                   -> ""
+                        _ -> ""
                     end,
     %% e.g. bbmustache v1.9.0+build.5.ref90a0afd4f2
     io:format("bbmustache v~s~s~n", [Vsn, AdditionalVsn]).
@@ -793,15 +789,15 @@ read_data_files(Filename) ->
         {ok, Terms0} when is_list(Terms0) ->
             Terms = case Terms0 of
                         [Term] when is_list(Term) -> Term;
-                        _                         -> Terms0
+                        _ -> Terms0
                     end,
             lists:foldl(fun(Term, Acc) when is_tuple(Term) ->
-                              [Term | Acc];
-                           (InclusionFilename, Acc) when is_list(InclusionFilename) ->
-                              Path = filename:join(filename:dirname(Filename), InclusionFilename),
-                              read_data_files(Path) ++ Acc;
-                           (Term, _Acc) ->
-                              throw(io_lib:format("~s have unsupported format terms. (~p)", [Filename, Term]))
+                [Term | Acc];
+                (InclusionFilename, Acc) when is_list(InclusionFilename) ->
+                    Path = filename:join(filename:dirname(Filename), InclusionFilename),
+                    read_data_files(Path) ++ Acc;
+                (Term, _Acc) ->
+                    throw(io_lib:format("~s have unsupported format terms. (~p)", [Filename, Term]))
                         end, [], Terms);
         {error, Reason} ->
             throw(io_lib:format("~s is unable to read. (~p)", [Filename, Reason]))

@@ -5,39 +5,39 @@ all: compile escriptize eunit ct xref dialyze edoc
 ci: compile escriptize eunit ct xref dialyze
 
 compile:
-	@./rebar3 as dev compile
+	@./epm as dev compile
 
 xref:
-	@./rebar3 as dev xref
+	@./epm as dev xref
 
 clean:
-	@./rebar3 clean
+	@./epm clean
 
 ct: escriptize
-	@CMD_TOOL=$(CWD)/bbmustache ./rebar3 ct
+	@CMD_TOOL=$(CWD)/bbmustache ./epm ct
 
 cover:
-	@./rebar3 cover
+	@./epm cover
 
 eunit:
-	@./rebar3 eunit
+	@./epm eunit
 
 edoc:
-	@./rebar3 as doc edoc
+	@./epm as doc edoc
 
 start:
-	@./rebar3 as dev shell
+	@./epm as dev shell
 
 dialyze:
-	@./rebar3 as dev dialyzer
+	@./epm as dev dialyzer
 
 bench:
-	@./rebar3 as test compile
-	@./rebar3 as bench compile
+	@./epm as test compile
+	@./epm as bench compile
 	@./benchmarks/bench.escript
 
 escriptize:
-	@./rebar3 as dev escriptize
+	@./epm as dev escriptize
 	@cp _build/dev/bin/bbmustache .
 
 install: escriptize
